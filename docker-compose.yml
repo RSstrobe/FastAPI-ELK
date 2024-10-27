@@ -1,0 +1,185 @@
+services:
+  elasticsearch:
+    image: elasticsearch:${STACK_VERSION}
+    container_name: elasticsearch
+    environment:
+      - discovery.type=single-node
+      - bootstrap.memory_lock=true
+      - "ES_JAVA_OPTS=-Xms265m -Xmx265m"
+      - xpack.security.enabled=false
+    volumes:
+      - es-logs-data:/tmp/elasticsearch/data
+    networks:
+      - app_network
+    healthcheck:
+      interval: 30s
+      retries: 10
+      test: curl -s http://localhost:9200/_cluster/health | grep -vq '"status":"red"'
+
+  kibana:
+    image: kibana:${STACK_VERSION}
+    container_name: kibana
+    ports:
+      - "5601:5601"
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+      - "ES_JAVA_OPTS=-Xms128m -Xmx128m"
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    networks:
+      - app_network
+    healthcheck:
+      interval: 30s
+      retries: 20
+      test: curl --write-out 'HTTP %{http_code}' --fail --silent --output /dev/null http://localhost:5601/api/status
+
+  apm-server:
+    image: docker.elastic.co/apm/apm-server:${STACK_VERSION}
+    container_name: apm-server
+    cap_add: [ "CHOWN", "DAC_OVERRIDE", "SETGID", "SETUID" ]
+    cap_drop: [ "ALL" ]
+    expose:
+      - 8200
+    networks:
+      - app_network
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+      kibana:
+        condition: service_healthy
+    command: >
+      apm-server -e
+        -E apm-server.rum.enabled=true
+        -E setup.kibana.host=kibana:5601
+        -E setup.template.settings.index.number_of_replicas=0
+        -E apm-server.kibana.enabled=true
+        -E telemetry.enabled=true
+        -E apm-server.kibana.host=kibana:5601
+        -E output.elasticsearch.hosts=["elasticsearch:9200"]
+    healthcheck:
+      interval: 30s
+      retries: 12
+      test: curl --write-out 'HTTP %{http_code}' --fail --silent --output /dev/null http://localhost:8200/
+
+  filebeat:
+    image: docker.elastic.co/beats/filebeat:${STACK_VERSION}
+    container_name: filebeat
+    user: root
+    environment:
+      ES_HOST: "http://elasticsearch:9200"
+      KIBANA_HOSTS: "http://kibana:5601"
+      LOGSTASH_HOSTS: "http://logstash:5044"
+    volumes:
+      - "./filebeat.yml:/usr/share/filebeat/filebeat.yml:ro"
+      - "/var/lib/docker/containers:/var/lib/docker/containers:ro"
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+    networks:
+      - app_network
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+
+  logstash:
+    image: logstash:${STACK_VERSION}
+    container_name: logstash
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+      kibana:
+        condition: service_healthy
+    environment:
+      ES_HOST: "elasticsearch:9200"
+    networks:
+      - app_network
+    volumes:
+      - ./logstash.conf:/config/logstash.conf:ro
+    command: logstash -f /config/logstash.conf
+
+  metricbeat:
+    image: docker.elastic.co/beats/metricbeat:${STACK_VERSION}
+    container_name: metricbeat
+    user: root
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+      kibana:
+        condition: service_healthy
+    networks:
+      - app_network
+    volumes:
+      - metricbeatdata:/usr/share/metricbeat/data
+      - "./metricbeat.yml:/usr/share/metricbeat/metricbeat.yml:ro"
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+      - "/sys/fs/cgroup:/hostfs/sys/fs/cgroup:ro"
+      - "/proc:/hostfs/proc:ro"
+      - "/:/hostfs:ro"
+    environment:
+      - ELASTIC_HOSTS=http://elasticsearch:9200
+      - KIBANA_HOSTS=http://kibana:5601
+      - LOGSTASH_HOSTS=http://logstash:5044
+
+  heartbeat:
+    image: docker.elastic.co/beats/heartbeat:${STACK_VERSION}
+    container_name: heartbeat
+    user: root
+    networks:
+      - app_network
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+      kibana:
+        condition: service_healthy
+    volumes:
+      - heartbeatdata:/usr/share/heartbeat/data
+      - "./heartbeat.yml:/usr/share/heartbeat/heartbeat.yml:ro"
+    environment:
+      - ELASTIC_HOSTS=http://elasticsearch:9200
+      - KIBANA_HOSTS=http://kibana:5601
+      - LOGSTASH_HOSTS=http://logstash:5044
+
+  redis:
+    image: redis:${REDIS_VERSION}
+    container_name: redis
+    hostname: redis
+    env_file: .env
+    restart: always
+    expose:
+      - ${REDIS_PORT}
+    networks:
+      - app_network
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: [ "CMD-SHELL", "redis-cli ping | grep PONG" ]
+      interval: 1s
+      timeout: 3s
+      retries: 5
+
+  app:
+    container_name: app
+    env_file: .env
+    build: .
+    depends_on:
+      redis:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
+      kibana:
+        condition: service_healthy
+      apm-server:
+        condition: service_healthy
+    networks:
+      - app_network
+    ports:
+      - ${BACKEND_PORT}:${BACKEND_PORT}
+
+networks:
+  app_network:
+    driver: bridge
+
+volumes:
+  es-logs-data:
+  redis_data:
+  metricbeatdata:
+  heartbeatdata:

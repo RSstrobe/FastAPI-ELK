@@ -1,0 +1,29 @@
+heartbeat.metrics.enabled: true
+xpack.security.enabled: false
+
+heartbeat.monitors:
+- type: tcp
+  schedule: '@every 5s'
+  hosts: ["localhost:80"]
+  mode: any
+  id: address-app-tcp
+  name: Address App http
+- type: http
+  schedule: '@every 5s'
+  urls: ["http://localhost:80"]
+  service.name: address-app
+  id: address-app-http
+  name: Address App http
+
+processors:
+- add_docker_metadata: ~
+
+setup.kibana:
+  host: ${KIBANA_HOSTS}
+  ssl:
+    enabled: false
+
+output.elasticsearch:
+  hosts: ["elasticsearch:9200"]
+  ssl:
+    enabled: false

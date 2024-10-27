@@ -1,0 +1,24 @@
+name: "app-service-filebeat"
+logging.metrics.enabled: true
+xpack.security.enabled: false
+xpack.monitoring.enabled: true
+setup.ilm.enabled: false
+setup.template.enabled: false
+
+processors:
+- add_docker_metadata: ~
+
+filebeat.autodiscover:
+  providers:
+    - type: docker
+      hints.enabled: true
+
+setup.kibana:
+  host: ${KIBANA_HOSTS}
+  ssl:
+    enabled: false
+
+output.elasticsearch:
+  hosts: ["elasticsearch:9200"]
+  ssl:
+    enabled: false

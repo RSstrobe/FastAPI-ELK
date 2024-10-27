@@ -1,0 +1,90 @@
+[project]
+name = "fastapi-elk"
+version = "0.1.0"
+description = "fastapi-elk"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "elastic-apm>=6.23.0",
+    "fastapi[standard]>=0.115.11",
+    "gunicorn==21.2.0",
+    "orjson==3.9.14",
+    "phonenumbers==8.13.37",
+    "pydantic-extra-types==2.7.0",
+    "pydantic-settings==2.2.1",
+    "python-dotenv==1.0.1",
+    "redis==5.0.1",
+    "uvicorn==0.27.1",
+]
+
+[dependency-groups]
+dev = [
+    "aiohttp>=3.11.13",
+    "faker>=36.1.1",
+    "pre-commit>=4.1.0",
+    "ruff>=0.9.9",
+]
+
+# https://docs.astral.sh/ruff/configuration/
+# https://docs.astral.sh/ruff/settings/
+[tool.ruff]
+target-version = "py311"
+extend-exclude = []
+line-length = 88
+
+[tool.ruff.format]
+quote-style = "single"
+
+[tool.ruff.lint]
+exclude = [
+]
+select = [
+    # RULES: https://docs.astral.sh/ruff/rules/
+     "A",     # flake8-builtins
+     "B",     # flake8-bugbear
+     "C",     # flake8-comprehensions
+     "E",     # pycodestyle errors
+     "G",     # flake8-logging-format
+     "F",     # pyflakes
+     "I",     # isort
+     "N",     # PEP8 naming
+     "S",     # flake8-bandit
+     "W",     # pycodestyle warnings
+     "T20",   # flake8-print
+     "C4",    # flake8-comprehensions
+     "EM",    # flake8-errmsg
+     "UP",    # pyupgrade
+     "PL",    # Pylint
+     "PT",    # flake8-pytest-style
+     "ISC",   # flake8-implicit-str-concat
+     "ICN",   # flake8-import-conventions
+     "ARG",   # flake8-unused-arguments
+     "COM",   # flake8-commas
+     "FBT",   # flake8-boolean-trap
+     "LOG",   # flake8-logging
+     "SIM",   # flake8-simplify
+     "TRY",   # tryceratops
+     "PIE",   # flake8-pie
+     "RUF",   # Ruff-specific rules
+     "ASYNC", # flake8-async
+]
+ignore = [
+    "E501",     # Line too long
+    "SIM108",   # Use ternary operator
+    "SIM110",   # Use return all instead of for-cycle
+    "TRY300",   # Consider moving any statement to an `else` block instead of try
+    "TRY002",   # Create your own exception
+    "TRY301",   # Abstract `raise` to an inner function
+    "RUF001",   # Docstring contains ambiguous some CYRILLIC LETTER
+    "RUF002",   # Docstring contains ambiguous some CYRILLIC LETTER
+    "RUF003",   # Docstring contains ambiguous some CYRILLIC LETTER
+    "N805",     # First argument of a method should be named `self`
+    "PLR0913",  # Too many arguments in function definition
+    "PLR2004",  # Magic value used in comparison, consider replacing x with a constant variable
+    "S311",     # Standard pseudo-random generators are not suitable for cryptographic purposes
+    "ASYNC109", # Async function definition with a `timeout` parameter
+    "RUF012",   # Mutable class attributes should be annotated with `typing.ClassVar`
+    "UP038",    # Use `X | Y` in `isinstance` call instead of `(X, Y)`
+    "B008",     # Do not perform function call in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable
+    "G004",     # Logging statement uses f-string
+]
