@@ -1,6 +1,6 @@
 services:
   elasticsearch:
-    image: elasticsearch:${STACK_VERSION}
+    image: docker.elastic.co/elasticsearch/elasticsearch:${STACK_VERSION}
     container_name: elasticsearch
     environment:
       - discovery.type=single-node
@@ -17,12 +17,12 @@ services:
       test: curl -s http://localhost:9200/_cluster/health | grep -vq '"status":"red"'
 
   kibana:
-    image: kibana:${STACK_VERSION}
+    image: docker.elastic.co/kibana/kibana:${STACK_VERSION}
     container_name: kibana
     ports:
-      - "5601:5601"
+      - ${KIBANA_PORT}:${KIBANA_PORT}
     environment:
-      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+      - ELASTICSEARCH_HOSTS=${ELASTICSEARCH_HOSTS}
       - "ES_JAVA_OPTS=-Xms128m -Xmx128m"
     depends_on:
       elasticsearch:
@@ -39,8 +39,6 @@ services:
     container_name: apm-server
     cap_add: [ "CHOWN", "DAC_OVERRIDE", "SETGID", "SETUID" ]
     cap_drop: [ "ALL" ]
-    expose:
-      - 8200
     networks:
       - app_network
     depends_on:
@@ -67,9 +65,9 @@ services:
     container_name: filebeat
     user: root
     environment:
-      ES_HOST: "http://elasticsearch:9200"
-      KIBANA_HOSTS: "http://kibana:5601"
-      LOGSTASH_HOSTS: "http://logstash:5044"
+      ES_HOST: ${ELASTICSEARCH_HOSTS}
+      KIBANA_HOSTS: ${KIBANA_HOSTS}
+      LOGSTASH_HOSTS: ${LOGSTASH_HOSTS}
     volumes:
       - "./filebeat.yml:/usr/share/filebeat/filebeat.yml:ro"
       - "/var/lib/docker/containers:/var/lib/docker/containers:ro"
@@ -88,8 +86,6 @@ services:
         condition: service_healthy
       kibana:
         condition: service_healthy
-    environment:
-      ES_HOST: "elasticsearch:9200"
     networks:
       - app_network
     volumes:
@@ -115,9 +111,9 @@ services:
       - "/proc:/hostfs/proc:ro"
       - "/:/hostfs:ro"
     environment:
-      - ELASTIC_HOSTS=http://elasticsearch:9200
-      - KIBANA_HOSTS=http://kibana:5601
-      - LOGSTASH_HOSTS=http://logstash:5044
+      - ELASTIC_HOSTS=${ELASTICSEARCH_HOSTS}
+      - KIBANA_HOSTS=${KIBANA_HOSTS}
+      - LOGSTASH_HOSTS=${LOGSTASH_HOSTS}
 
   heartbeat:
     image: docker.elastic.co/beats/heartbeat:${STACK_VERSION}
@@ -134,9 +130,9 @@ services:
       - heartbeatdata:/usr/share/heartbeat/data
       - "./heartbeat.yml:/usr/share/heartbeat/heartbeat.yml:ro"
     environment:
-      - ELASTIC_HOSTS=http://elasticsearch:9200
-      - KIBANA_HOSTS=http://kibana:5601
-      - LOGSTASH_HOSTS=http://logstash:5044
+      - ELASTIC_HOSTS=${ELASTICSEARCH_HOSTS}
+      - KIBANA_HOSTS=${KIBANA_HOSTS}
+      - LOGSTASH_HOSTS=${LOGSTASH_HOSTS}
 
   redis:
     image: redis:${REDIS_VERSION}
