@@ -20,9 +20,14 @@ dependencies = [
 [dependency-groups]
 dev = [
     "aiohttp>=3.11.13",
+    "coverage>=7.6.12",
     "faker>=36.1.1",
     "pre-commit>=4.1.0",
+    "pytest>=8.3.5",
+    "pytest-asyncio>=0.25.3",
+    "pytest-cov>=6.0.0",
     "ruff>=0.9.9",
+    "testcontainers>=4.9.1",
 ]
 
 # https://docs.astral.sh/ruff/configuration/
@@ -87,4 +92,19 @@ ignore = [
     "UP038",    # Use `X | Y` in `isinstance` call instead of `(X, Y)`
     "B008",     # Do not perform function call in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable
     "G004",     # Logging statement uses f-string
+]
+
+[tool.ruff.lint.extend-per-file-ignores]
+"tests/**.py" = ["S101", "PLR2004", "S105", "S106", "FBT001"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+pythonpath = ["app"]
+asyncio_default_fixture_loop_scope = "function"
+filterwarnings = "ignore::DeprecationWarning"
+
+
+[tool.coverage.run]
+omit = [
+    "tests/*",
 ]

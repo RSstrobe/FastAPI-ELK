@@ -34,4 +34,4 @@ ENV PATH="/src/app/.venv/bin:$PATH"
 ENV PYTHONPATH=/src/app
 
 # Run the application.
-CMD ["/src/.venv/bin/fastapi", "run", "app/app.py", "--port", "80", "--host", "0.0.0.0"]
+CMD ["/src/.venv/bin/fastapi", "run", "app/main.py", "--port", "80", "--host", "0.0.0.0"]
